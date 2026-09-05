@@ -35,32 +35,19 @@
 
                     /*
                      * =====================================================
-                     * COASTAL LETTER FORMATTER v15
+                     * COASTAL LETTER FORMATTER v16
                      * =====================================================
                      *
-                     * PURPOSE
+                     * Stable formatter.
                      *
-                     * - Preserve clinical wording.
-                     * - Bold recognised section headings.
-                     * - Number Medical History.
-                     * - Number Assessment / Issues.
-                     * - Number Management Plan.
-                     * - Preserve explicit dash/bullet subpoints.
-                     * - Give subpoints a modest hanging indent.
-                     * - Italicise and indent Investigations.
-                     * - Keep internal list spacing compact.
-                     * - Prevent closing narrative from being numbered.
-                     *
-                     * IMPORTANT
-                     *
-                     * The formatter does NOT create or rewrite clinical
-                     * sentences. A subpoint must already be a separate
-                     * paragraph beginning with:
-                     *
-                     *   -
-                     *   –
-                     *   —
-                     *   •
+                     * - Does NOT rewrite clinical wording.
+                     * - Recognised headings -> bold.
+                     * - Medical History -> numbered.
+                     * - Assessment / Issues -> numbered.
+                     * - Management Plan -> numbered.
+                     * - Explicit dash/bullet paragraphs -> subpoints.
+                     * - Investigations -> italic + indented.
+                     * - Closing narrative excluded from numbering.
                      *
                      * =====================================================
                      */
@@ -68,27 +55,27 @@
 
                     /*
                      * -----------------------------------------------------
-                     * INDENTATION
+                     * INDENTS
                      * -----------------------------------------------------
                      *
-                     * Twips:
-                     * 1440 twips = 1 inch.
+                     * Main change in v16:
                      *
-                     * Subpoints use:
+                     * Subpoints:
                      *
-                     * left indent       720 = 0.5 inch
-                     * first-line indent -240
+                     *      - subpoint text starts here
+                     *        wrapped line aligns here
                      *
-                     * This produces:
+                     * Letter 14 was too far left.
                      *
-                     *     - Subpoint text begins here...
-                     *       continuation aligns under text
+                     * 960 left + (-240) first-line means:
                      *
-                     * rather than pushing the whole paragraph too far
-                     * to the right.
+                     * dash/first line starts at 720
+                     * wrapped lines start at 960
+                     *
+                     * This is much closer to Letter 9.
                      */
 
-                    var SUBPOINT_LEFT_INDENT = 720;
+                    var SUBPOINT_LEFT_INDENT = 960;
                     var SUBPOINT_FIRST_LINE = -240;
 
                     var INVESTIGATION_INDENT = 720;
@@ -225,14 +212,12 @@
                     function isSubPoint(text) {
 
                         /*
-                         * Explicit subpoints only.
+                         * Recognise:
                          *
-                         * Examples:
-                         *
-                         * - CT imaging demonstrates...
-                         * – CT imaging demonstrates...
-                         * — CT imaging demonstrates...
-                         * • CT imaging demonstrates...
+                         * - text
+                         * – text
+                         * — text
+                         * • text
                          */
 
                         return /^\s*[-–—•]\s+/.test(text);
@@ -241,7 +226,7 @@
 
                     /*
                      * =====================================================
-                     * CLOSING / FOOTER DETECTION
+                     * CLOSING / FOOTER
                      * =====================================================
                      */
 
@@ -309,11 +294,6 @@
 
                     function makeNumbering() {
 
-                        /*
-                         * This is the numbering implementation that has
-                         * already proven reliable in Xestro.
-                         */
-
                         return doc.CreateNumbering("numbered");
                     }
 
@@ -345,19 +325,17 @@
 
                     /*
                      * =====================================================
-                     * SUBPOINT FORMATTING
+                     * SUBPOINT FORMAT
                      * =====================================================
                      */
 
                     function formatSubPoint(paragraph) {
 
                         /*
-                         * Do NOT remove or replace the dash.
+                         * IMPORTANT:
                          *
-                         * Preserve whatever Lyrebird supplied.
-                         *
-                         * Use a modest hanging indent so wrapped text
-                         * aligns neatly under the subpoint text.
+                         * We do not alter the actual text.
+                         * The dash/bullet provided by Lyrebird remains.
                          */
 
                         paragraph.SetIndLeft(
@@ -386,7 +364,7 @@
 
                     /*
                      * =====================================================
-                     * HEADING FORMATTING
+                     * HEADING FORMAT
                      * =====================================================
                      */
 
@@ -410,16 +388,11 @@
 
                     /*
                      * =====================================================
-                     * INVESTIGATION FORMATTING
+                     * INVESTIGATION FORMAT
                      * =====================================================
                      */
 
                     function formatInvestigation(paragraph) {
-
-                        /*
-                         * This matches your preferred Letter 9:
-                         * investigations italic + indented.
-                         */
 
                         paragraph.SetItalic(true);
 
@@ -471,12 +444,11 @@
                     ) {
 
                         var p = paragraphs[i];
-
                         var text = cleanText(p);
 
 
                         /*
-                         * Ignore blank paragraphs.
+                         * Blank paragraph.
                          */
 
                         if (!text) {
@@ -487,7 +459,7 @@
 
                         /*
                          * -------------------------------------------------
-                         * PATIENT IDENTIFICATION BLOCK
+                         * PATIENT BLOCK
                          * -------------------------------------------------
                          */
 
@@ -520,7 +492,7 @@
 
                         /*
                          * -------------------------------------------------
-                         * SECTION HEADINGS
+                         * HEADING
                          * -------------------------------------------------
                          */
 
@@ -531,11 +503,6 @@
                         if (isHeading(text)) {
 
                             formatHeading(p);
-
-                            /*
-                             * A recognised heading ends the previous
-                             * section mode.
-                             */
 
                             mode = "";
 
@@ -603,7 +570,7 @@
 
                         /*
                          * -------------------------------------------------
-                         * MEDICAL / PAST MEDICAL HISTORY
+                         * MEDICAL HISTORY
                          * -------------------------------------------------
                          */
 
@@ -636,11 +603,6 @@
 
                             if (isSubPoint(text)) {
 
-                                /*
-                                 * Explicit dash paragraph:
-                                 * subordinate to preceding numbered issue.
-                                 */
-
                                 formatSubPoint(p);
 
                             } else {
@@ -665,11 +627,6 @@
                         if (mode === "plan") {
 
                             if (isSubPoint(text)) {
-
-                                /*
-                                 * Explicit dash paragraph:
-                                 * subordinate to preceding numbered plan.
-                                 */
 
                                 formatSubPoint(p);
 
@@ -706,11 +663,6 @@
                             }
 
 
-                            /*
-                             * First ordinary narrative paragraph after
-                             * investigations ends investigation mode.
-                             */
-
                             if (
                                 investigationCount > 0
                             ) {
@@ -723,9 +675,7 @@
 
                     /*
                      * =====================================================
-                     * SECOND PASS
-                     *
-                     * MEDICAL HISTORY SPACING
+                     * MEDICAL HISTORY SPACING PASS
                      * =====================================================
                      */
 
@@ -744,11 +694,9 @@
                         j++
                     ) {
 
-                        var hp =
-                            paragraphs[j];
+                        var hp = paragraphs[j];
 
-                        var ht =
-                            cleanText(hp);
+                        var ht = cleanText(hp);
 
 
                         if (!ht) {
@@ -779,8 +727,7 @@
                         ) {
 
                             /*
-                             * One visual line after the Medical History
-                             * section.
+                             * One line after Medical History.
                              */
 
                             if (
@@ -846,9 +793,7 @@
 
                     /*
                      * =====================================================
-                     * THIRD PASS
-                     *
-                     * INVESTIGATION SPACING
+                     * INVESTIGATION SPACING PASS
                      * =====================================================
                      */
 
@@ -863,11 +808,9 @@
                         k++
                     ) {
 
-                        var ip =
-                            paragraphs[k];
+                        var ip = paragraphs[k];
 
-                        var it =
-                            cleanText(ip);
+                        var it = cleanText(ip);
 
 
                         if (!it) {
@@ -895,8 +838,7 @@
                         if (inInvestigations) {
 
                             /*
-                             * Another recognised heading ends the
-                             * investigation section.
+                             * Another heading.
                              */
 
                             if (
@@ -927,7 +869,7 @@
 
 
                             /*
-                             * Still inside investigation results.
+                             * Another investigation.
                              */
 
                             if (
@@ -1008,7 +950,6 @@
             function (result) {
 
                 if (btn) {
-
                     btn.disabled = false;
                 }
 
@@ -1037,16 +978,10 @@
     };
 
 
-    /*
-     * ================================================================
-     * PLUGIN INITIALISATION
-     * ================================================================
-     */
-
     window.Asc.plugin.init = function () {
 
         setStatus(
-            "Coastal Formatter v15 loaded — click Format current letter.",
+            "Coastal Formatter v16 loaded — click Format current letter.",
             false
         );
     };
