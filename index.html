@@ -1,49 +1,94 @@
 <!doctype html>
-<html>
+
+<html lang="en">
 
 <head>
 
   <meta charset="utf-8">
 
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1"
+  >
+
   <title>
     Coastal Letter Formatter
   </title>
 
-  <script src="https://onlyoffice.github.io/sdkjs-plugins/v1/plugins.js"></script>
+  <!--
+    ONLYOFFICE plugin API.
+    This must load before code.js.
+  -->
+  <script
+    type="text/javascript"
+    src="https://onlyoffice.github.io/sdkjs-plugins/v1/plugins.js"
+  ></script>
+
 
   <style>
 
+    html,
     body {
-      font-family: Arial, sans-serif;
       margin: 0;
-      padding: 18px;
+      padding: 0;
       background: #ffffff;
       color: #222222;
+      font-family: Arial, Helvetica, sans-serif;
     }
+
+
+    body {
+      padding: 18px;
+      box-sizing: border-box;
+    }
+
 
     h2 {
       margin: 0 0 8px 0;
+      padding: 0;
       font-size: 18px;
+      font-weight: 700;
+      line-height: 1.25;
     }
+
 
     p {
       margin: 6px 0 14px 0;
+      padding: 0;
       font-size: 13px;
       line-height: 1.4;
     }
 
-    button {
+
+    #formatBtn {
+      display: block;
       width: 100%;
+      box-sizing: border-box;
+
       padding: 10px 12px;
+
+      font-family: Arial, Helvetica, sans-serif;
       font-size: 14px;
       font-weight: 600;
+
       cursor: pointer;
     }
 
+
+    #formatBtn:disabled {
+      cursor: default;
+      opacity: 0.65;
+    }
+
+
     #status {
       margin-top: 12px;
+      padding: 0;
+
       font-size: 12px;
       line-height: 1.35;
+
+      color: #333333;
     }
 
   </style>
@@ -53,27 +98,52 @@
 
 <body>
 
+
   <h2>
     Coastal Letter Formatter
   </h2>
+
 
   <p>
     Formats the open Xestro/ONLYOFFICE correspondence
     without changing the clinical wording.
   </p>
 
+
   <button
     id="formatBtn"
-    onclick="formatCoastalLetter()"
+    type="button"
+    onclick="formatCoastalLetter();"
   >
     Format current letter
   </button>
 
+
   <div id="status">
-    Loading Coastal Formatter v17…
+    Loading Coastal Formatter v18…
   </div>
 
-  <script src="code.js?v=17"></script>
+
+  <!--
+    IMPORTANT:
+
+    The version query below is deliberate.
+
+    Whenever code.js changes, increase this number:
+        v=18
+        v=19
+        v=20
+        etc.
+
+    This forces Xestro/ONLYOFFICE/Edge to request the new JavaScript
+    rather than continuing to use a cached copy.
+  -->
+
+  <script
+    type="text/javascript"
+    src="code.js?v=18"
+  ></script>
+
 
 </body>
 
