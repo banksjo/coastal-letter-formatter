@@ -700,7 +700,7 @@
 
     window.Asc.plugin.init = function () {
         setStatus(
-            "Coastal Formatter v13 loaded — click Format current letter.",
+            "Coastal Formatter v14 loaded — click Format current letter.",
             false
         );
     };
