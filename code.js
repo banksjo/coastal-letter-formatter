@@ -27,29 +27,30 @@
                 var paragraphs = doc.GetAllParagraphs();
 
                 /*
-                 * ============================================================
+                 * =========================================================
                  * COASTAL LETTER FORMATTER
-                 * Version 2.8
+                 * STABLE VERSION
                  *
-                 * Main principles:
+                 * Does NOT rewrite clinical wording.
                  *
-                 * - Clinical wording is preserved.
-                 * - Recognised section headings are bold.
-                 * - Medical History is numbered.
-                 * - Assessment / Issues is numbered.
-                 * - Management Plan is numbered.
-                 * - Lines beginning -, –, — or • become proper en-dash
-                 *   sub-list items rather than consuming a main list number.
-                 * - Investigation results are italicised and indented.
-                 * - Closing narrative is not numbered.
-                 * - PMH remains compact with one line after the section.
-                 * ============================================================
+                 * Formats:
+                 * - recognised headings bold
+                 * - Medical/Past Medical History numbered
+                 * - Assessment/Issues numbered
+                 * - Management Plan numbered
+                 * - dash/bullet lines retained as indented subpoints
+                 * - investigations italic + indented
+                 * - closing narrative excluded from numbering
+                 * =========================================================
                  */
 
+                var SUBPOINT_INDENT = 720;
+
+
                 /*
-                 * ------------------------------------------------------------
-                 * SECTION HEADINGS
-                 * ------------------------------------------------------------
+                 * ---------------------------------------------------------
+                 * RECOGNISED HEADINGS
+                 * ---------------------------------------------------------
                  */
 
                 var SECTION_HEADINGS = {
@@ -95,8 +96,8 @@
                     "IMPRESSION:": true,
                     "IMPRESSION / DIAGNOSIS:": true,
                     "IMPRESSION/DIAGNOSIS:": true,
-                    "DIAGNOSIS:": true,
 
+                    "DIAGNOSIS:": true,
                     "CURRENT PROBLEMS:": true,
 
                     "MANAGEMENT PLAN:": true,
@@ -137,9 +138,9 @@
 
 
                 /*
-                 * ------------------------------------------------------------
-                 * BASIC TEXT FUNCTIONS
-                 * ------------------------------------------------------------
+                 * ---------------------------------------------------------
+                 * HELPER FUNCTIONS
+                 * ---------------------------------------------------------
                  */
 
                 function cleanText(p) {
@@ -174,40 +175,20 @@
                 }
 
 
-                /*
-                 * ------------------------------------------------------------
-                 * SUBPOINT DETECTION
-                 * ------------------------------------------------------------
-                 *
-                 * Lyrebird may use:
-                 *
-                 * - text
-                 * – text
-                 * — text
-                 * • text
-                 *
-                 * These should become genuine sub-list items.
-                 */
-
                 function isSubPoint(text) {
+
+                    /*
+                     * Accept all common Lyrebird subpoint markers:
+                     *
+                     * - text
+                     * – text
+                     * — text
+                     * • text
+                     */
 
                     return /^\s*[-–—•]\s+/.test(text);
                 }
 
-
-                function removeSubPointMarker(text) {
-
-                    return text
-                        .replace(/^\s*[-–—•]\s+/, "")
-                        .trim();
-                }
-
-
-                /*
-                 * ------------------------------------------------------------
-                 * CLOSING / SIGNATURE DETECTION
-                 * ------------------------------------------------------------
-                 */
 
                 function isSignatureOrFooter(text) {
 
@@ -215,9 +196,7 @@
 
                     return (
                         /^Yours sincerely[,;]?$/i.test(t) ||
-
                         /^Kind regards[,;]?$/i.test(t) ||
-
                         /^Regards[,;]?$/i.test(t) ||
 
                         /^Dr\s+Jonathan\s+Banks\b/i.test(t) ||
@@ -243,27 +222,15 @@
 
                     return (
                         /^Thank you\b/i.test(t) ||
-
                         /^Thankyou\b/i.test(t) ||
-
                         /^I would be happy\b/i.test(t) ||
-
                         /^Please do not hesitate\b/i.test(t) ||
-
                         /^Please contact\b/i.test(t) ||
-
                         /^With thanks\b/i.test(t) ||
-
                         /^Many thanks\b/i.test(t)
                     );
                 }
 
-
-                /*
-                 * ------------------------------------------------------------
-                 * INVESTIGATION DETECTION
-                 * ------------------------------------------------------------
-                 */
 
                 function looksLikeInvestigation(text) {
 
@@ -274,64 +241,23 @@
 
 
                 /*
-                 * ------------------------------------------------------------
-                 * LIST CREATION
-                 * ------------------------------------------------------------
+                 * ---------------------------------------------------------
+                 * NUMBERING
+                 * ---------------------------------------------------------
                  */
 
-                function createMainNumbering() {
-
-                    var numbering =
-                        doc.CreateNumbering("numbered");
-
-                    var level =
-                        numbering.GetLevel(0);
+                function makeNumbering() {
 
                     /*
-                     * Force conventional:
-                     *
-                     * 1.
-                     * 2.
-                     * 3.
+                     * This is the method that was working reliably
+                     * in the earlier versions.
                      */
 
-                    level.SetTemplateType("1.");
-
-                    level.SetSuff("space");
-
-                    return numbering;
+                    return doc.CreateNumbering("numbered");
                 }
 
 
-                function createDashNumbering() {
-
-                    var numbering =
-                        doc.CreateNumbering("bullet");
-
-                    var level =
-                        numbering.GetLevel(0);
-
-                    /*
-                     * Use an en dash rather than a round bullet.
-                     *
-                     * Desired appearance:
-                     *
-                     *     – CT imaging...
-                     *     – Spirometry...
-                     */
-
-                    level.SetTemplateType(
-                        "bullet",
-                        "–"
-                    );
-
-                    level.SetSuff("space");
-
-                    return numbering;
-                }
-
-
-                function applyMainNumbering(
+                function applyNumbering(
                     paragraph,
                     numbering
                 ) {
@@ -356,26 +282,25 @@
                 }
 
 
-                function applyDashSubPoint(
-                    paragraph,
-                    text,
-                    numbering
-                ) {
+                /*
+                 * ---------------------------------------------------------
+                 * SUBPOINT FORMAT
+                 * ---------------------------------------------------------
+                 *
+                 * IMPORTANT:
+                 *
+                 * Do NOT modify the paragraph text.
+                 *
+                 * We simply keep Lyrebird's existing "-", "–", "—" or "•"
+                 * and indent the paragraph.
+                 *
+                 * This avoids the failure caused by SetText/AddElement.
+                 */
 
-                    /*
-                     * Remove Lyrebird's literal "-" first.
-                     *
-                     * The actual visible en dash will then come
-                     * from the ONLYOFFICE list definition.
-                     */
+                function formatSubPoint(paragraph) {
 
-                    var cleaned =
-                        removeSubPointMarker(text);
-
-                    paragraph.SetText(cleaned);
-
-                    paragraph.SetNumbering(
-                        numbering.GetLevel(0)
+                    paragraph.SetIndLeft(
+                        SUBPOINT_INDENT
                     );
 
                     paragraph.SetSpacingBefore(
@@ -395,23 +320,23 @@
 
 
                 /*
-                 * ------------------------------------------------------------
-                 * SECTION HEADING FORMAT
-                 * ------------------------------------------------------------
+                 * ---------------------------------------------------------
+                 * HEADING FORMAT
+                 * ---------------------------------------------------------
                  */
 
-                function formatHeading(p) {
+                function formatHeading(paragraph) {
 
-                    p.SetBold(true);
+                    paragraph.SetBold(true);
 
-                    p.SetItalic(false);
+                    paragraph.SetItalic(false);
 
-                    p.SetSpacingBefore(
+                    paragraph.SetSpacingBefore(
                         0,
                         false
                     );
 
-                    p.SetSpacingAfter(
+                    paragraph.SetSpacingAfter(
                         0,
                         false
                     );
@@ -419,52 +344,18 @@
 
 
                 /*
-                 * ------------------------------------------------------------
-                 * SPECIAL MEDICAL-HISTORY NORMALISATION
-                 * ------------------------------------------------------------
-                 *
-                 * Letter 9 specifically treats:
-                 *
-                 * Renal malignancy
-                 *     – Partial nephrectomy approximately 3 years ago
-                 *
-                 * rather than:
-                 *
-                 * Renal malignancy - partial nephrectomy...
-                 *
-                 * We only use this narrow rule because globally splitting
-                 * every "diagnosis - detail" would incorrectly alter things
-                 * such as COPD - emphysematous phenotype and DVT - flight.
-                 */
-
-                function shouldSplitRenalMalignancy(text) {
-
-                    return /^Renal malignancy\s*[-–—]\s*partial nephrectomy\b/i
-                        .test(text);
-                }
-
-
-                /*
-                 * ============================================================
+                 * =========================================================
                  * FIRST PASS
-                 * ============================================================
+                 * =========================================================
                  */
 
                 var mode = "";
 
                 var historyNumbering = null;
-                var historyDashNumbering = null;
-
                 var assessmentNumbering = null;
-                var assessmentDashNumbering = null;
-
                 var planNumbering = null;
-                var planDashNumbering = null;
 
                 var investigationCount = 0;
-
-                var assessmentCount = 0;
-                var planCount = 0;
 
                 var patientBlockRemaining = 0;
 
@@ -483,7 +374,13 @@
 
 
                     /*
-                     * Blank paragraphs.
+                     * Blank paragraph:
+                     *
+                     * Do NOT terminate Assessment or Plan simply because
+                     * there is a blank paragraph.
+                     *
+                     * Some Xestro/Lyrebird templates contain invisible
+                     * paragraph breaks inside a list.
                      */
 
                     if (!text) {
@@ -493,7 +390,9 @@
 
 
                     /*
-                     * Patient identification block.
+                     * -----------------------------------------------------
+                     * PATIENT IDENTIFICATION BLOCK
+                     * -----------------------------------------------------
                      */
 
                     if (/^Re\s*:/i.test(text)) {
@@ -523,17 +422,23 @@
                     }
 
 
+                    /*
+                     * -----------------------------------------------------
+                     * SECTION HEADINGS
+                     * -----------------------------------------------------
+                     */
+
                     var heading =
                         normHeading(text);
 
 
-                    /*
-                     * Section heading encountered.
-                     */
-
                     if (isHeading(text)) {
 
                         formatHeading(p);
+
+                        /*
+                         * Any new recognised heading ends the previous mode.
+                         */
 
                         mode = "";
 
@@ -547,10 +452,7 @@
                             mode = "history";
 
                             historyNumbering =
-                                createMainNumbering();
-
-                            historyDashNumbering =
-                                createDashNumbering();
+                                makeNumbering();
 
 
                         } else if (
@@ -567,12 +469,7 @@
                             mode = "assessment";
 
                             assessmentNumbering =
-                                createMainNumbering();
-
-                            assessmentDashNumbering =
-                                createDashNumbering();
-
-                            assessmentCount = 0;
+                                makeNumbering();
 
 
                         } else if (
@@ -582,25 +479,27 @@
                             mode = "plan";
 
                             planNumbering =
-                                createMainNumbering();
-
-                            planDashNumbering =
-                                createDashNumbering();
-
-                            planCount = 0;
+                                makeNumbering();
                         }
+
 
                         continue;
                     }
 
 
                     /*
-                     * Closing text always terminates list modes.
+                     * -----------------------------------------------------
+                     * CLOSING TEXT
+                     * -----------------------------------------------------
+                     *
+                     * Prevent:
+                     *
+                     * 13. Thank you again...
                      */
 
                     if (
-                        isSignatureOrFooter(text) ||
-                        isClosingNarrative(text)
+                        isClosingNarrative(text) ||
+                        isSignatureOrFooter(text)
                     ) {
 
                         mode = "";
@@ -610,204 +509,105 @@
 
 
                     /*
-                     * --------------------------------------------------------
-                     * MEDICAL HISTORY
-                     * --------------------------------------------------------
+                     * -----------------------------------------------------
+                     * MEDICAL / PAST MEDICAL HISTORY
+                     * -----------------------------------------------------
                      */
 
-                    if (mode === "history") {
-
-                        /*
-                         * Existing explicit subpoint.
-                         */
-
-                        if (isSubPoint(text)) {
-
-                            applyDashSubPoint(
-                                p,
-                                text,
-                                historyDashNumbering
-                            );
-
-                            continue;
-                        }
-
-
-                        /*
-                         * Special Letter-9 transformation:
-                         *
-                         * Renal malignancy - partial nephrectomy...
-                         *
-                         * becomes:
-                         *
-                         * 3. Renal malignancy
-                         *      – Partial nephrectomy...
-                         */
+                    if (
+                        mode === "history"
+                    ) {
 
                         if (
-                            shouldSplitRenalMalignancy(text)
+                            isSubPoint(text)
                         ) {
 
-                            var parts =
-                                text.split(/\s*[-–—]\s*/);
+                            formatSubPoint(p);
 
-                            var parentText =
-                                parts.shift().trim();
+                        } else {
 
-                            var childText =
-                                parts.join(" - ").trim();
-
-
-                            /*
-                             * Make current paragraph the parent.
-                             */
-
-                            p.SetText(parentText);
-
-                            applyMainNumbering(
+                            applyNumbering(
                                 p,
                                 historyNumbering
                             );
-
-
-                            /*
-                             * Add child immediately afterwards.
-                             */
-
-                            var child =
-                                Api.CreateParagraph();
-
-                            child.AddText(childText);
-
-                            child.SetNumbering(
-                                historyDashNumbering
-                                    .GetLevel(0)
-                            );
-
-                            child.SetSpacingBefore(
-                                0,
-                                false
-                            );
-
-                            child.SetSpacingAfter(
-                                0,
-                                false
-                            );
-
-                            child.SetContextualSpacing(
-                                true
-                            );
-
-
-                            /*
-                             * Insert immediately after parent.
-                             */
-
-                            doc.AddElement(
-                                i + 1,
-                                child
-                            );
-
-
-                            /*
-                             * Refresh paragraph array because
-                             * document structure changed.
-                             */
-
-                            paragraphs =
-                                doc.GetAllParagraphs();
-
-                            i++;
-
-                            continue;
                         }
 
-
-                        /*
-                         * Normal medical history item.
-                         */
-
-                        applyMainNumbering(
-                            p,
-                            historyNumbering
-                        );
 
                         continue;
                     }
 
 
                     /*
-                     * --------------------------------------------------------
+                     * -----------------------------------------------------
                      * ASSESSMENT / ISSUES
-                     * --------------------------------------------------------
+                     * -----------------------------------------------------
                      */
 
                     if (
                         mode === "assessment"
                     ) {
 
+                        /*
+                         * A dash line belongs to the previous numbered issue.
+                         */
+
                         if (
                             isSubPoint(text)
                         ) {
 
-                            applyDashSubPoint(
-                                p,
-                                text,
-                                assessmentDashNumbering
-                            );
+                            formatSubPoint(p);
 
                         } else {
 
-                            applyMainNumbering(
+                            applyNumbering(
                                 p,
                                 assessmentNumbering
                             );
-
-                            assessmentCount++;
                         }
+
 
                         continue;
                     }
 
 
                     /*
-                     * --------------------------------------------------------
+                     * -----------------------------------------------------
                      * MANAGEMENT PLAN
-                     * --------------------------------------------------------
+                     * -----------------------------------------------------
                      */
 
                     if (
                         mode === "plan"
                     ) {
 
+                        /*
+                         * A dash line belongs to the previous numbered plan
+                         * item and must NOT consume a new number.
+                         */
+
                         if (
                             isSubPoint(text)
                         ) {
 
-                            applyDashSubPoint(
-                                p,
-                                text,
-                                planDashNumbering
-                            );
+                            formatSubPoint(p);
 
                         } else {
 
-                            applyMainNumbering(
+                            applyNumbering(
                                 p,
                                 planNumbering
                             );
-
-                            planCount++;
                         }
+
 
                         continue;
                     }
 
 
                     /*
-                     * --------------------------------------------------------
+                     * -----------------------------------------------------
                      * INVESTIGATIONS
-                     * --------------------------------------------------------
+                     * -----------------------------------------------------
                      */
 
                     if (
@@ -820,12 +620,9 @@
 
                             p.SetItalic(true);
 
-                            /*
-                             * Approximately the indentation used
-                             * in your preferred letter style.
-                             */
-
-                            p.SetIndLeft(720);
+                            p.SetIndLeft(
+                                SUBPOINT_INDENT
+                            );
 
                             p.SetSpacingBefore(
                                 0,
@@ -844,8 +641,8 @@
 
 
                         /*
-                         * First normal narrative paragraph ends
-                         * the investigations section.
+                         * First normal narrative paragraph after at least
+                         * one investigation ends the section.
                          */
 
                         if (
@@ -859,11 +656,19 @@
 
 
                 /*
-                 * ============================================================
+                 * =========================================================
                  * SECOND PASS
                  *
                  * MEDICAL HISTORY SPACING
-                 * ============================================================
+                 * =========================================================
+                 *
+                 * Internal PMH list:
+                 *
+                 * zero paragraph spacing.
+                 *
+                 * After final PMH item:
+                 *
+                 * one visual line before the next section.
                  */
 
                 paragraphs =
@@ -871,8 +676,7 @@
 
 
                 var inHistory = false;
-
-                var lastHistoryParagraph = null;
+                var lastHistoryPara = null;
 
 
                 for (
@@ -904,7 +708,7 @@
 
                         inHistory = true;
 
-                        lastHistoryParagraph = null;
+                        lastHistoryPara = null;
 
                         continue;
                     }
@@ -915,31 +719,34 @@
                         isHeading(ht)
                     ) {
 
-                        /*
-                         * One line after Medical History.
-                         */
-
                         if (
-                            lastHistoryParagraph
+                            lastHistoryPara
                         ) {
 
-                            lastHistoryParagraph
+                            /*
+                             * One line after Medical History.
+                             */
+
+                            lastHistoryPara
                                 .SetSpacingAfter(
                                     240,
                                     false
                                 );
 
-                            lastHistoryParagraph
+                            lastHistoryPara
                                 .SetContextualSpacing(
                                     false
                                 );
                         }
 
+
                         inHistory = false;
                     }
 
 
-                    if (inHistory) {
+                    if (
+                        inHistory
+                    ) {
 
                         hp.SetSpacingBefore(
                             0,
@@ -955,23 +762,23 @@
                             true
                         );
 
-                        lastHistoryParagraph = hp;
+                        lastHistoryPara = hp;
                     }
                 }
 
 
                 if (
                     inHistory &&
-                    lastHistoryParagraph
+                    lastHistoryPara
                 ) {
 
-                    lastHistoryParagraph
+                    lastHistoryPara
                         .SetSpacingAfter(
                             240,
                             false
                         );
 
-                    lastHistoryParagraph
+                    lastHistoryPara
                         .SetContextualSpacing(
                             false
                         );
@@ -979,16 +786,15 @@
 
 
                 /*
-                 * ============================================================
+                 * =========================================================
                  * THIRD PASS
                  *
                  * INVESTIGATION SPACING
-                 * ============================================================
+                 * =========================================================
                  */
 
-                var inInvestigations = false;
-
-                var lastInvestigationParagraph = null;
+                var inInv = false;
+                var lastInvPara = null;
 
 
                 for (
@@ -1018,58 +824,54 @@
                         ih === "INVESTIGATIONS:"
                     ) {
 
-                        inInvestigations = true;
+                        inInv = true;
 
-                        lastInvestigationParagraph = null;
+                        lastInvPara = null;
 
                         continue;
                     }
 
 
                     if (
-                        inInvestigations
+                        inInv
                     ) {
-
-                        /*
-                         * Another heading ends investigations.
-                         */
 
                         if (
                             isHeading(it)
                         ) {
 
+                            /*
+                             * Another heading encountered.
+                             */
+
                             if (
-                                lastInvestigationParagraph
+                                lastInvPara
                             ) {
 
-                                lastInvestigationParagraph
+                                lastInvPara
                                     .SetSpacingAfter(
-                                        240,
+                                        120,
                                         false
                                     );
 
-                                lastInvestigationParagraph
+                                lastInvPara
                                     .SetContextualSpacing(
                                         false
                                     );
                             }
 
-                            inInvestigations = false;
+
+                            inInv = false;
 
                             continue;
                         }
 
 
-                        /*
-                         * Still an investigation.
-                         */
-
                         if (
                             looksLikeInvestigation(it)
                         ) {
 
-                            lastInvestigationParagraph =
-                                ip;
+                            lastInvPara = ip;
 
                             continue;
                         }
@@ -1077,42 +879,44 @@
 
                         /*
                          * First narrative paragraph after investigations.
+                         *
+                         * Use modest spacing only.
                          */
 
                         if (
-                            lastInvestigationParagraph
+                            lastInvPara
                         ) {
 
-                            lastInvestigationParagraph
+                            lastInvPara
                                 .SetSpacingAfter(
-                                    240,
+                                    120,
                                     false
                                 );
 
-                            lastInvestigationParagraph
+                            lastInvPara
                                 .SetContextualSpacing(
                                     false
                                 );
                         }
 
 
-                        inInvestigations = false;
+                        inInv = false;
                     }
                 }
 
 
                 if (
-                    inInvestigations &&
-                    lastInvestigationParagraph
+                    inInv &&
+                    lastInvPara
                 ) {
 
-                    lastInvestigationParagraph
+                    lastInvPara
                         .SetSpacingAfter(
-                            240,
+                            120,
                             false
                         );
 
-                    lastInvestigationParagraph
+                    lastInvPara
                         .SetContextualSpacing(
                             false
                         );
