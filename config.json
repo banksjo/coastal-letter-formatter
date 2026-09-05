@@ -1,11 +1,11 @@
 {
   "name": "Coastal Letter Formatter",
   "guid": "asc.{9D6F2B50-8A0D-4B49-9C50-1A2D7F74B8A1}",
-  "version": "1.0.0",
+  "version": "1.0.14",
   "variations": [
     {
       "description": "Format Coastal Respiratory & Sleep correspondence generated through Lyrebird/Xestro.",
-      "url": "index.html",
+      "url": "index.html?v=14",
       "icons": [
         "icon.png"
       ],
