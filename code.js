@@ -98,6 +98,7 @@
 
                 function isSignatureOrFooter(text) {
                     var t = text.trim();
+
                     return /^Yours sincerely[,;]?$/i.test(t) ||
                            /^Kind regards[,;]?$/i.test(t) ||
                            /^Regards[,;]?$/i.test(t) ||
@@ -112,6 +113,7 @@
 
                 function isClosingNarrative(text) {
                     var t = text.trim();
+
                     return /^Thank you\b/i.test(t) ||
                            /^Thankyou\b/i.test(t) ||
                            /^I would be happy\b/i.test(t) ||
@@ -123,7 +125,12 @@
 
                 function looksLikeInvestigation(text) {
                     var t = text.trim();
+
                     return /^(RFTs?|PFTs?|Lung function|Spirometry|Plethysmography|DLCO|KCO|FeNO|6[- ]?minute walk|6MWT|Walk test|CT\b|HRCT\b|CTPA\b|PET\b|PET\/CT\b|MRI\b|CXR\b|Chest X[- ]?ray|X[- ]?ray|Ultrasound\b|Echo\b|Echocardiogram\b|ECG\b|Holter\b|ABG\b|VBG\b|Blood\b|FBC\b|UEC\b|LFT\b|CRP\b|ESR\b|IgE\b|IgG\b|Eosinophils?\b|Serology\b|ANA\b|ANCA\b|ENA\b|Biopsy\b|Lung biopsy\b|Histology\b|Pathology\b|Respiratory culture\b|Sputum\b|BAL\b|Bronchoscopy\b|EBUS\b|Sleep study\b|PSG\b|Polysomnography\b|Oximetry\b|CPAP download\b|Device download\b)/i.test(t);
+                }
+
+                function isSubPoint(text) {
+                    return /^\s*[-–—•]\s+/.test(text);
                 }
 
                 function makeNumbering() {
@@ -152,12 +159,15 @@
                 }
 
                 var mode = "";
+
                 var historyNumbering = null;
                 var assessmentNumbering = null;
                 var planNumbering = null;
+
                 var investigationCount = 0;
                 var assessmentCount = 0;
                 var planCount = 0;
+
                 var patientBlockRemaining = 0;
 
                 for (var i = 0; i < paragraphs.length; i++) {
@@ -165,14 +175,21 @@
                     var text = cleanText(p);
 
                     if (!text) {
-                        if (mode === "assessment" && assessmentCount > 0) mode = "";
-                        if (mode === "plan" && planCount > 0) mode = "";
+                        if (mode === "assessment" && assessmentCount > 0) {
+                            mode = "";
+                        }
+
+                        if (mode === "plan" && planCount > 0) {
+                            mode = "";
+                        }
+
                         continue;
                     }
 
                     if (/^Re\s*:/i.test(text)) {
                         p.SetBold(true);
                         p.SetIndLeft(INDENT);
+
                         patientBlockRemaining = 3;
                         continue;
                     }
@@ -183,6 +200,7 @@
                         } else {
                             p.SetBold(true);
                             p.SetIndLeft(INDENT);
+
                             patientBlockRemaining--;
                             continue;
                         }
@@ -192,6 +210,7 @@
 
                     if (isHeading(text)) {
                         formatHeading(p);
+
                         mode = "";
                         investigationCount = 0;
 
@@ -209,6 +228,7 @@
                             planNumbering = makeNumbering();
                             planCount = 0;
                         }
+
                         continue;
                     }
 
@@ -218,23 +238,34 @@
                     }
 
                     if (mode === "history") {
-                        if (/^\s*[-–—•]\s+/.test(text)) {
+                        if (isSubPoint(text)) {
                             indentSubItem(p);
                         } else {
                             applyNumbering(p, historyNumbering);
                         }
+
                         continue;
                     }
 
                     if (mode === "assessment") {
-                        applyNumbering(p, assessmentNumbering);
-                        assessmentCount++;
+                        if (isSubPoint(text)) {
+                            indentSubItem(p);
+                        } else {
+                            applyNumbering(p, assessmentNumbering);
+                            assessmentCount++;
+                        }
+
                         continue;
                     }
 
                     if (mode === "plan") {
-                        applyNumbering(p, planNumbering);
-                        planCount++;
+                        if (isSubPoint(text)) {
+                            indentSubItem(p);
+                        } else {
+                            applyNumbering(p, planNumbering);
+                            planCount++;
+                        }
+
                         continue;
                     }
 
@@ -244,6 +275,7 @@
                             p.SetIndLeft(INDENT);
                             p.SetSpacingAfter(0, false);
                             p.SetSpacingBefore(0, false);
+
                             investigationCount++;
                             continue;
                         }
@@ -256,13 +288,21 @@
 
                 paragraphs = doc.GetAllParagraphs();
 
+                /*
+                    FINAL SPACING PASS
+                */
+
                 var inHistory = false;
                 var lastHistoryPara = null;
 
                 for (var j = 0; j < paragraphs.length; j++) {
                     var hp = paragraphs[j];
                     var ht = cleanText(hp);
-                    if (!ht) continue;
+
+                    if (!ht) {
+                        continue;
+                    }
+
                     var hh = normHeading(ht);
 
                     if (HISTORY_HEADINGS[hh]) {
@@ -276,6 +316,7 @@
                             lastHistoryPara.SetSpacingAfter(240, false);
                             lastHistoryPara.SetContextualSpacing(false);
                         }
+
                         inHistory = false;
                     }
 
@@ -283,6 +324,7 @@
                         hp.SetSpacingBefore(0, false);
                         hp.SetSpacingAfter(0, false);
                         hp.SetContextualSpacing(true);
+
                         lastHistoryPara = hp;
                     }
                 }
@@ -292,13 +334,21 @@
                     lastHistoryPara.SetContextualSpacing(false);
                 }
 
+                /*
+                    INVESTIGATIONS SPACING
+                */
+
                 var inInv = false;
                 var lastInvPara = null;
 
                 for (var k = 0; k < paragraphs.length; k++) {
                     var ip = paragraphs[k];
                     var it = cleanText(ip);
-                    if (!it) continue;
+
+                    if (!it) {
+                        continue;
+                    }
+
                     var ih = normHeading(it);
 
                     if (ih === "INVESTIGATIONS:") {
@@ -313,6 +363,7 @@
                                 lastInvPara.SetSpacingAfter(240, false);
                                 lastInvPara.SetContextualSpacing(false);
                             }
+
                             inInv = false;
                             continue;
                         }
@@ -326,6 +377,7 @@
                             lastInvPara.SetSpacingAfter(240, false);
                             lastInvPara.SetContextualSpacing(false);
                         }
+
                         inInv = false;
                     }
                 }
@@ -336,24 +388,43 @@
                 }
 
                 return "OK";
+
             } catch (e) {
-                return "ERROR: " + (e && e.message ? e.message : String(e));
+                return "ERROR: " + (
+                    e && e.message
+                        ? e.message
+                        : String(e)
+                );
             }
+
         }, true, true, function (result) {
-            if (btn) btn.disabled = false;
-            if (result && String(result).indexOf("ERROR:") === 0) {
+            if (btn) {
+                btn.disabled = false;
+            }
+
+            if (
+                result &&
+                String(result).indexOf("ERROR:") === 0
+            ) {
                 setStatus(result, true);
             } else {
-                setStatus("Formatting complete. Review the letter, then save/send.", false);
+                setStatus(
+                    "Formatting complete. Review the letter, then save/send.",
+                    false
+                );
             }
         });
     };
 
     window.Asc.plugin.init = function () {
-        setStatus("Ready. Click Format current letter.", false);
+        setStatus(
+            "Ready. Click Format current letter.",
+            false
+        );
     };
 
     window.Asc.plugin.button = function (id) {
         this.executeCommand("close", "");
     };
+
 })(window, undefined);
