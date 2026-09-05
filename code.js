@@ -9,13 +9,17 @@
         el.style.color = isError ? "#9b1c1c" : "#333333";
     }
 
+
     window.formatCoastalLetter = function () {
 
         var btn = document.getElementById("formatBtn");
 
-        if (btn) btn.disabled = true;
+        if (btn) {
+            btn.disabled = true;
+        }
 
         setStatus("Formatting current letter…", false);
+
 
         window.Asc.plugin.callCommand(
             function () {
@@ -25,26 +29,74 @@
                     var doc = Api.GetDocument();
                     var paragraphs = doc.GetAllParagraphs();
 
+
                     /*
-                     * COASTAL LETTER FORMATTER v17
+                     * =====================================================
+                     * COASTAL LETTER FORMATTER v18
+                     * =====================================================
                      *
-                     * - Does not rewrite clinical wording
-                     * - Bold recognised headings
-                     * - Number Medical History
-                     * - Number Assessment / Issues
-                     * - Number Management Plan
-                     * - Preserve explicit dash subpoints
-                     * - Correct hanging indent for subpoints
-                     * - Italicise and indent investigations
-                     * - Keep lists compact
-                     * - Do not number closing narrative
+                     * IMPORTANT CHANGE:
+                     *
+                     * INVESTIGATIONS ARE NOW RECOGNISED STRUCTURALLY.
+                     *
+                     * We do NOT try to maintain a list of every possible
+                     * investigation in medicine.
+                     *
+                     * Once an INVESTIGATIONS heading is found:
+                     *
+                     * - every subsequent non-empty paragraph is formatted
+                     *   as an investigation
+                     * - one blank paragraph between tests is allowed
+                     * - two consecutive blank paragraphs end the section
+                     * - another recognised heading also ends the section
+                     *
+                     * Therefore this automatically handles:
+                     *
+                     * pathology
+                     * blood tests
+                     * imaging
+                     * spirometry
+                     * full lung function
+                     * PSG
+                     * CPAP titration
+                     * device downloads
+                     * CPET
+                     * ABG
+                     * VBG
+                     * ECG
+                     * echo
+                     * Holter
+                     * PET
+                     * CT
+                     * MRI
+                     * ultrasound
+                     * bronchoscopy
+                     * EBUS
+                     * biopsy
+                     * histopathology
+                     * microbiology
+                     * immunology
+                     * genetics
+                     * serology
+                     * iron studies
+                     * etc.
+                     *
+                     * No clinical wording is changed.
+                     * =====================================================
                      */
+
 
                     var SUBPOINT_LEFT_INDENT = 1200;
                     var SUBPOINT_FIRST_LINE = -240;
 
                     var INVESTIGATION_INDENT = 720;
 
+
+                    /*
+                     * =====================================================
+                     * SECTION HEADINGS
+                     * =====================================================
+                     */
 
                     var SECTION_HEADINGS = {
 
@@ -78,6 +130,9 @@
                         "ALLERGIES & ADR:": true,
 
                         "INVESTIGATIONS:": true,
+                        "INVESTIGATION RESULTS:": true,
+                        "RELEVANT INVESTIGATIONS:": true,
+                        "RESULTS:": true,
 
                         "EXAMINATION:": true,
                         "EXAMINATION FINDINGS:": true,
@@ -107,6 +162,14 @@
                     };
 
 
+                    var INVESTIGATION_HEADINGS = {
+                        "INVESTIGATIONS:": true,
+                        "INVESTIGATION RESULTS:": true,
+                        "RELEVANT INVESTIGATIONS:": true,
+                        "RESULTS:": true
+                    };
+
+
                     var ASSESSMENT_HEADINGS = {
                         "ASSESSMENT:": true,
                         "ASSESSMENT AND ISSUES:": true,
@@ -126,6 +189,12 @@
                         "PLAN:": true
                     };
 
+
+                    /*
+                     * =====================================================
+                     * HELPERS
+                     * =====================================================
+                     */
 
                     function cleanText(paragraph) {
 
@@ -207,13 +276,11 @@
                     }
 
 
-                    function looksLikeInvestigation(text) {
-
-                        var t = text.trim();
-
-                        return /^(RFTs?|PFTs?|Lung function|Spirometry|Plethysmography|DLCO|KCO|FeNO|6[- ]?minute walk|6MWT|Walk test|CT\b|HRCT\b|CTPA\b|PET\b|PET\/CT\b|MRI\b|CXR\b|Chest X[- ]?ray|X[- ]?ray|Ultrasound\b|Echo\b|Echocardiogram\b|ECG\b|Holter\b|ABG\b|VBG\b|Blood\b|FBC\b|UEC\b|LFT\b|CRP\b|ESR\b|IgE\b|IgG\b|Eosinophils?\b|Serology\b|ANA\b|ANCA\b|ENA\b|Biopsy\b|Lung biopsy\b|Histology\b|Pathology\b|Respiratory culture\b|Sputum\b|BAL\b|Bronchoscopy\b|EBUS\b|Sleep study\b|PSG\b|Polysomnography\b|Oximetry\b|CPAP download\b|Device download\b)/i.test(t);
-                    }
-
+                    /*
+                     * =====================================================
+                     * NUMBERING
+                     * =====================================================
+                     */
 
                     function makeNumbering() {
 
@@ -221,7 +288,10 @@
                     }
 
 
-                    function applyMainNumbering(paragraph, numbering) {
+                    function applyMainNumbering(
+                        paragraph,
+                        numbering
+                    ) {
 
                         paragraph.SetNumbering(
                             numbering.GetLevel(0)
@@ -243,18 +313,13 @@
                     }
 
 
-                    function formatSubPoint(paragraph) {
+                    /*
+                     * =====================================================
+                     * SUBPOINT FORMAT
+                     * =====================================================
+                     */
 
-                        /*
-                         * Desired structure:
-                         *
-                         * 1. Parent item...
-                         *       - Subpoint text...
-                         *         continuation of subpoint...
-                         *
-                         * Left indent controls wrapped lines.
-                         * Negative first-line indent pulls the dash left.
-                         */
+                    function formatSubPoint(paragraph) {
 
                         paragraph.SetIndLeft(
                             SUBPOINT_LEFT_INDENT
@@ -280,9 +345,16 @@
                     }
 
 
+                    /*
+                     * =====================================================
+                     * HEADING FORMAT
+                     * =====================================================
+                     */
+
                     function formatHeading(paragraph) {
 
                         paragraph.SetBold(true);
+
                         paragraph.SetItalic(false);
 
                         paragraph.SetSpacingBefore(
@@ -296,6 +368,12 @@
                         );
                     }
 
+
+                    /*
+                     * =====================================================
+                     * INVESTIGATION FORMAT
+                     * =====================================================
+                     */
 
                     function formatInvestigation(paragraph) {
 
@@ -326,7 +404,9 @@
 
 
                     /*
+                     * =====================================================
                      * FIRST PASS
+                     * =====================================================
                      */
 
                     var mode = "";
@@ -335,7 +415,12 @@
                     var assessmentNumbering = null;
                     var planNumbering = null;
 
-                    var investigationCount = 0;
+                    /*
+                     * Number of consecutive blank paragraphs encountered
+                     * while inside Investigations.
+                     */
+
+                    var investigationBlankCount = 0;
 
                     var patientBlockRemaining = 0;
 
@@ -349,13 +434,57 @@
                         var p = paragraphs[i];
                         var text = cleanText(p);
 
+
+                        /*
+                         * =================================================
+                         * BLANK PARAGRAPHS
+                         * =================================================
+                         */
+
                         if (!text) {
+
+                            if (
+                                mode === "investigations"
+                            ) {
+
+                                investigationBlankCount++;
+
+                                /*
+                                 * One blank paragraph is normal between
+                                 * separate investigations.
+                                 *
+                                 * Two consecutive blanks mean the
+                                 * investigations section is finished.
+                                 */
+
+                                if (
+                                    investigationBlankCount >= 2
+                                ) {
+
+                                    mode = "";
+                                }
+                            }
+
                             continue;
                         }
 
 
                         /*
-                         * Patient identification block
+                         * Any non-empty paragraph resets the blank counter.
+                         */
+
+                        if (
+                            mode === "investigations"
+                        ) {
+
+                            investigationBlankCount = 0;
+                        }
+
+
+                        /*
+                         * =================================================
+                         * PATIENT BLOCK
+                         * =================================================
                          */
 
                         if (/^Re\s*:/i.test(text)) {
@@ -368,9 +497,13 @@
                         }
 
 
-                        if (patientBlockRemaining > 0) {
+                        if (
+                            patientBlockRemaining > 0
+                        ) {
 
-                            if (/^Dear\b/i.test(text)) {
+                            if (
+                                /^Dear\b/i.test(text)
+                            ) {
 
                                 patientBlockRemaining = 0;
 
@@ -386,19 +519,24 @@
 
 
                         /*
-                         * Heading
+                         * =================================================
+                         * SECTION HEADING
+                         * =================================================
                          */
 
                         var heading =
                             normHeading(text);
 
 
-                        if (isHeading(text)) {
+                        if (
+                            isHeading(text)
+                        ) {
 
                             formatHeading(p);
 
                             mode = "";
-                            investigationCount = 0;
+
+                            investigationBlankCount = 0;
 
 
                             if (
@@ -412,10 +550,20 @@
 
 
                             } else if (
-                                heading === "INVESTIGATIONS:"
+                                INVESTIGATION_HEADINGS[heading]
                             ) {
 
+                                /*
+                                 * Critical v18 behaviour:
+                                 *
+                                 * EVERYTHING after this heading is treated
+                                 * as an investigation until the section
+                                 * structurally ends.
+                                 */
+
                                 mode = "investigations";
+
+                                investigationBlankCount = 0;
 
 
                             } else if (
@@ -444,7 +592,9 @@
 
 
                         /*
-                         * Closing text
+                         * =================================================
+                         * CLOSING TEXT
+                         * =================================================
                          */
 
                         if (
@@ -459,12 +609,39 @@
 
 
                         /*
-                         * Medical History
+                         * =================================================
+                         * INVESTIGATIONS
+                         * =================================================
+                         *
+                         * This deliberately occurs BEFORE the other
+                         * section handlers.
+                         *
+                         * No test-name recognition is required.
                          */
 
-                        if (mode === "history") {
+                        if (
+                            mode === "investigations"
+                        ) {
 
-                            if (isSubPoint(text)) {
+                            formatInvestigation(p);
+
+                            continue;
+                        }
+
+
+                        /*
+                         * =================================================
+                         * MEDICAL HISTORY
+                         * =================================================
+                         */
+
+                        if (
+                            mode === "history"
+                        ) {
+
+                            if (
+                                isSubPoint(text)
+                            ) {
 
                                 formatSubPoint(p);
 
@@ -481,12 +658,18 @@
 
 
                         /*
-                         * Assessment / Issues
+                         * =================================================
+                         * ASSESSMENT / ISSUES
+                         * =================================================
                          */
 
-                        if (mode === "assessment") {
+                        if (
+                            mode === "assessment"
+                        ) {
 
-                            if (isSubPoint(text)) {
+                            if (
+                                isSubPoint(text)
+                            ) {
 
                                 formatSubPoint(p);
 
@@ -503,12 +686,18 @@
 
 
                         /*
-                         * Management Plan
+                         * =================================================
+                         * MANAGEMENT PLAN
+                         * =================================================
                          */
 
-                        if (mode === "plan") {
+                        if (
+                            mode === "plan"
+                        ) {
 
-                            if (isSubPoint(text)) {
+                            if (
+                                isSubPoint(text)
+                            ) {
 
                                 formatSubPoint(p);
 
@@ -522,42 +711,18 @@
 
                             continue;
                         }
-
-
-                        /*
-                         * Investigations
-                         */
-
-                        if (mode === "investigations") {
-
-                            if (
-                                looksLikeInvestigation(text)
-                            ) {
-
-                                formatInvestigation(p);
-
-                                investigationCount++;
-
-                                continue;
-                            }
-
-
-                            if (
-                                investigationCount > 0
-                            ) {
-
-                                mode = "";
-                            }
-                        }
                     }
 
 
                     /*
-                     * MEDICAL HISTORY SPACING
+                     * =====================================================
+                     * MEDICAL HISTORY SPACING PASS
+                     * =====================================================
                      */
 
                     paragraphs =
                         doc.GetAllParagraphs();
+
 
                     var inHistory = false;
                     var lastHistoryParagraph = null;
@@ -569,12 +734,17 @@
                         j++
                     ) {
 
-                        var hp = paragraphs[j];
-                        var ht = cleanText(hp);
+                        var hp =
+                            paragraphs[j];
+
+                        var ht =
+                            cleanText(hp);
+
 
                         if (!ht) {
                             continue;
                         }
+
 
                         var hh =
                             normHeading(ht);
@@ -617,7 +787,9 @@
                         }
 
 
-                        if (inHistory) {
+                        if (
+                            inHistory
+                        ) {
 
                             hp.SetSpacingBefore(
                                 0,
@@ -658,10 +830,17 @@
 
 
                     /*
-                     * INVESTIGATION SPACING
+                     * =====================================================
+                     * INVESTIGATION SPACING PASS
+                     * =====================================================
+                     *
+                     * Again: structural, not based on test names.
                      */
 
                     var inInvestigations = false;
+
+                    var investigationBlanks = 0;
+
                     var lastInvestigationParagraph = null;
 
 
@@ -671,22 +850,59 @@
                         k++
                     ) {
 
-                        var ip = paragraphs[k];
-                        var it = cleanText(ip);
+                        var ip =
+                            paragraphs[k];
+
+                        var it =
+                            cleanText(ip);
+
 
                         if (!it) {
+
+                            if (
+                                inInvestigations
+                            ) {
+
+                                investigationBlanks++;
+
+                                if (
+                                    investigationBlanks >= 2
+                                ) {
+
+                                    /*
+                                     * End of investigation block.
+                                     */
+
+                                    if (
+                                        lastInvestigationParagraph
+                                    ) {
+
+                                        lastInvestigationParagraph
+                                            .SetSpacingAfter(
+                                                0,
+                                                false
+                                            );
+                                    }
+
+                                    inInvestigations = false;
+                                }
+                            }
+
                             continue;
                         }
+
 
                         var ih =
                             normHeading(it);
 
 
                         if (
-                            ih === "INVESTIGATIONS:"
+                            INVESTIGATION_HEADINGS[ih]
                         ) {
 
                             inInvestigations = true;
+
+                            investigationBlanks = 0;
 
                             lastInvestigationParagraph = null;
 
@@ -694,27 +910,17 @@
                         }
 
 
-                        if (inInvestigations) {
+                        if (
+                            inInvestigations
+                        ) {
+
+                            /*
+                             * Another heading always ends investigations.
+                             */
 
                             if (
                                 isHeading(it)
                             ) {
-
-                                if (
-                                    lastInvestigationParagraph
-                                ) {
-
-                                    lastInvestigationParagraph
-                                        .SetSpacingAfter(
-                                            120,
-                                            false
-                                        );
-
-                                    lastInvestigationParagraph
-                                        .SetContextualSpacing(
-                                            false
-                                        );
-                                }
 
                                 inInvestigations = false;
 
@@ -722,53 +928,30 @@
                             }
 
 
-                            if (
-                                looksLikeInvestigation(it)
-                            ) {
+                            /*
+                             * Any non-empty paragraph before the structural
+                             * end is an investigation.
+                             */
 
-                                lastInvestigationParagraph =
-                                    ip;
+                            investigationBlanks = 0;
 
-                                continue;
-                            }
+                            ip.SetSpacingBefore(
+                                0,
+                                false
+                            );
 
+                            ip.SetSpacingAfter(
+                                0,
+                                false
+                            );
 
-                            if (
-                                lastInvestigationParagraph
-                            ) {
+                            ip.SetContextualSpacing(
+                                true
+                            );
 
-                                lastInvestigationParagraph
-                                    .SetSpacingAfter(
-                                        120,
-                                        false
-                                    );
-
-                                lastInvestigationParagraph
-                                    .SetContextualSpacing(
-                                        false
-                                    );
-                            }
-
-                            inInvestigations = false;
+                            lastInvestigationParagraph =
+                                ip;
                         }
-                    }
-
-
-                    if (
-                        inInvestigations &&
-                        lastInvestigationParagraph
-                    ) {
-
-                        lastInvestigationParagraph
-                            .SetSpacingAfter(
-                                120,
-                                false
-                            );
-
-                        lastInvestigationParagraph
-                            .SetContextualSpacing(
-                                false
-                            );
                     }
 
 
@@ -798,6 +981,7 @@
                     btn.disabled = false;
                 }
 
+
                 if (
                     result &&
                     String(result).indexOf(
@@ -825,7 +1009,7 @@
     window.Asc.plugin.init = function () {
 
         setStatus(
-            "Coastal Formatter v17 loaded — click Format current letter.",
+            "Coastal Formatter v18 loaded — click Format current letter.",
             false
         );
     };
