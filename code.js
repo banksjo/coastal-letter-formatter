@@ -3,47 +3,36 @@
 
     function setStatus(text, isError) {
         var el = document.getElementById("status");
-
-        if (!el) {
-            return;
-        }
+        if (!el) return;
 
         el.textContent = text;
         el.style.color = isError ? "#9b1c1c" : "#333333";
     }
 
-
     window.formatCoastalLetter = function () {
-
         var btn = document.getElementById("formatBtn");
 
-        if (btn) {
-            btn.disabled = true;
-        }
+        if (btn) btn.disabled = true;
 
         setStatus("Formatting current letter…", false);
 
-
         window.Asc.plugin.callCommand(
             function () {
-
                 try {
-
                     var doc = Api.GetDocument();
                     var paragraphs = doc.GetAllParagraphs();
 
-                    var SUBPOINT_INDENT = 720;
-                    var INVESTIGATION_INDENT = 720;
-
-
                     /*
-                     * =====================================================
-                     * RECOGNISED SECTION HEADINGS
-                     * =====================================================
+                     * Coastal Letter Formatter v13
+                     *
+                     * Stable formatting only.
+                     * Does not rewrite clinical wording.
                      */
 
-                    var SECTION_HEADINGS = {
+                    var SUBPOINT_INDENT = 1200;
+                    var INVESTIGATION_INDENT = 720;
 
+                    var SECTION_HEADINGS = {
                         "PAST MEDICAL HISTORY:": true,
                         "MEDICAL HISTORY:": true,
 
@@ -96,16 +85,12 @@
                         "FOLLOW UP:": true
                     };
 
-
                     var HISTORY_HEADINGS = {
-
                         "PAST MEDICAL HISTORY:": true,
                         "MEDICAL HISTORY:": true
                     };
 
-
                     var ASSESSMENT_HEADINGS = {
-
                         "ASSESSMENT:": true,
                         "ASSESSMENT AND ISSUES:": true,
                         "ASSESSMENT & ISSUES:": true,
@@ -118,22 +103,12 @@
                         "CURRENT PROBLEMS:": true
                     };
 
-
                     var PLAN_HEADINGS = {
-
                         "MANAGEMENT PLAN:": true,
                         "PLAN:": true
                     };
 
-
-                    /*
-                     * =====================================================
-                     * HELPER FUNCTIONS
-                     * =====================================================
-                     */
-
                     function cleanText(paragraph) {
-
                         return (
                             paragraph.GetText({
                                 "Numbering": false,
@@ -146,32 +121,24 @@
                         .trim();
                     }
 
-
                     function normHeading(text) {
-
                         return text
                             .replace(/\s+/g, " ")
                             .trim()
                             .toUpperCase();
                     }
 
-
                     function isHeading(text) {
-
                         return !!SECTION_HEADINGS[
                             normHeading(text)
                         ];
                     }
 
-
                     function isSubPoint(text) {
-
                         return /^\s*[-–—•]\s+/.test(text);
                     }
 
-
                     function isSignatureOrFooter(text) {
-
                         var t = text.trim();
 
                         return (
@@ -195,9 +162,7 @@
                         );
                     }
 
-
                     function isClosingNarrative(text) {
-
                         var t = text.trim();
 
                         return (
@@ -211,32 +176,20 @@
                         );
                     }
 
-
                     function looksLikeInvestigation(text) {
-
                         var t = text.trim();
 
                         return /^(RFTs?|PFTs?|Lung function|Spirometry|Plethysmography|DLCO|KCO|FeNO|6[- ]?minute walk|6MWT|Walk test|CT\b|HRCT\b|CTPA\b|PET\b|PET\/CT\b|MRI\b|CXR\b|Chest X[- ]?ray|X[- ]?ray|Ultrasound\b|Echo\b|Echocardiogram\b|ECG\b|Holter\b|ABG\b|VBG\b|Blood\b|FBC\b|UEC\b|LFT\b|CRP\b|ESR\b|IgE\b|IgG\b|Eosinophils?\b|Serology\b|ANA\b|ANCA\b|ENA\b|Biopsy\b|Lung biopsy\b|Histology\b|Pathology\b|Respiratory culture\b|Sputum\b|BAL\b|Bronchoscopy\b|EBUS\b|Sleep study\b|PSG\b|Polysomnography\b|Oximetry\b|CPAP download\b|Device download\b)/i.test(t);
                     }
 
-
-                    /*
-                     * =====================================================
-                     * FORMATTING HELPERS
-                     * =====================================================
-                     */
-
                     function makeNumbering() {
-
                         return doc.CreateNumbering("numbered");
                     }
-
 
                     function applyMainNumbering(
                         paragraph,
                         numbering
                     ) {
-
                         paragraph.SetNumbering(
                             numbering.GetLevel(0)
                         );
@@ -256,14 +209,10 @@
                         );
                     }
 
-
                     function formatSubPoint(paragraph) {
-
                         /*
-                         * Preserve the original "-" / "–" / "—" / "•"
-                         * typed by Lyrebird.
-                         *
-                         * We only indent it.
+                         * More deeply indented than the main numbered text.
+                         * Keep Lyrebird's existing dash/en-dash marker.
                          */
 
                         paragraph.SetIndLeft(
@@ -285,11 +234,8 @@
                         );
                     }
 
-
                     function formatHeading(paragraph) {
-
                         paragraph.SetBold(true);
-
                         paragraph.SetItalic(false);
 
                         paragraph.SetSpacingBefore(
@@ -303,9 +249,7 @@
                         );
                     }
 
-
                     function formatInvestigation(paragraph) {
-
                         paragraph.SetItalic(true);
 
                         paragraph.SetIndLeft(
@@ -323,7 +267,6 @@
                         );
                     }
 
-
                     /*
                      * =====================================================
                      * FIRST PASS
@@ -340,35 +283,23 @@
 
                     var patientBlockRemaining = 0;
 
-
                     for (
                         var i = 0;
                         i < paragraphs.length;
                         i++
                     ) {
-
                         var p = paragraphs[i];
                         var text = cleanText(p);
 
-
-                        /*
-                         * Ignore blank paragraphs.
-                         */
-
                         if (!text) {
-
                             continue;
                         }
 
-
                         /*
-                         * -------------------------------------------------
-                         * PATIENT DETAILS
-                         * -------------------------------------------------
+                         * Patient identifier.
                          */
 
                         if (/^Re\s*:/i.test(text)) {
-
                             p.SetBold(true);
 
                             patientBlockRemaining = 3;
@@ -376,15 +307,10 @@
                             continue;
                         }
 
-
                         if (patientBlockRemaining > 0) {
-
                             if (/^Dear\b/i.test(text)) {
-
                                 patientBlockRemaining = 0;
-
                             } else {
-
                                 p.SetBold(true);
 
                                 patientBlockRemaining--;
@@ -393,192 +319,123 @@
                             }
                         }
 
-
                         /*
-                         * -------------------------------------------------
-                         * SECTION HEADING
-                         * -------------------------------------------------
+                         * Section headings.
                          */
 
                         var heading = normHeading(text);
 
-
                         if (isHeading(text)) {
-
                             formatHeading(p);
 
                             mode = "";
                             investigationCount = 0;
 
-
                             if (
                                 HISTORY_HEADINGS[heading]
                             ) {
-
                                 mode = "history";
 
                                 historyNumbering =
                                     makeNumbering();
 
-
                             } else if (
                                 heading === "INVESTIGATIONS:"
                             ) {
-
                                 mode = "investigations";
-
 
                             } else if (
                                 ASSESSMENT_HEADINGS[heading]
                             ) {
-
                                 mode = "assessment";
 
                                 assessmentNumbering =
                                     makeNumbering();
 
-
                             } else if (
                                 PLAN_HEADINGS[heading]
                             ) {
-
                                 mode = "plan";
 
                                 planNumbering =
                                     makeNumbering();
                             }
 
-
                             continue;
                         }
 
-
                         /*
-                         * -------------------------------------------------
-                         * CLOSING TEXT
-                         * -------------------------------------------------
+                         * Closing narrative / signature.
                          */
 
                         if (
                             isClosingNarrative(text) ||
                             isSignatureOrFooter(text)
                         ) {
-
                             mode = "";
 
                             continue;
                         }
 
-
                         /*
-                         * -------------------------------------------------
-                         * MEDICAL / PAST MEDICAL HISTORY
-                         * -------------------------------------------------
+                         * Medical History.
                          */
 
-                        if (
-                            mode === "history"
-                        ) {
-
-                            if (
-                                isSubPoint(text)
-                            ) {
-
+                        if (mode === "history") {
+                            if (isSubPoint(text)) {
                                 formatSubPoint(p);
-
                             } else {
-
                                 applyMainNumbering(
                                     p,
                                     historyNumbering
                                 );
                             }
 
-
                             continue;
                         }
 
-
                         /*
-                         * -------------------------------------------------
-                         * ASSESSMENT / ISSUES
-                         * -------------------------------------------------
+                         * Assessment and Issues.
                          */
 
-                        if (
-                            mode === "assessment"
-                        ) {
-
-                            if (
-                                isSubPoint(text)
-                            ) {
-
-                                /*
-                                 * Subpoint remains under the previous issue.
-                                 */
-
+                        if (mode === "assessment") {
+                            if (isSubPoint(text)) {
                                 formatSubPoint(p);
-
                             } else {
-
                                 applyMainNumbering(
                                     p,
                                     assessmentNumbering
                                 );
                             }
 
-
                             continue;
                         }
 
-
                         /*
-                         * -------------------------------------------------
-                         * MANAGEMENT PLAN
-                         * -------------------------------------------------
+                         * Management Plan.
                          */
 
-                        if (
-                            mode === "plan"
-                        ) {
-
-                            if (
-                                isSubPoint(text)
-                            ) {
-
-                                /*
-                                 * Subpoint remains under the previous plan item.
-                                 */
-
+                        if (mode === "plan") {
+                            if (isSubPoint(text)) {
                                 formatSubPoint(p);
-
                             } else {
-
                                 applyMainNumbering(
                                     p,
                                     planNumbering
                                 );
                             }
 
-
                             continue;
                         }
 
-
                         /*
-                         * -------------------------------------------------
-                         * INVESTIGATIONS
-                         * -------------------------------------------------
+                         * Investigations.
                          */
 
-                        if (
-                            mode === "investigations"
-                        ) {
-
+                        if (mode === "investigations") {
                             if (
                                 looksLikeInvestigation(text)
                             ) {
-
                                 formatInvestigation(p);
 
                                 investigationCount++;
@@ -586,16 +443,9 @@
                                 continue;
                             }
 
-
-                            /*
-                             * First ordinary narrative paragraph ends
-                             * the investigations block.
-                             */
-
                             if (
                                 investigationCount > 0
                             ) {
-
                                 mode = "";
                             }
                         }
@@ -604,7 +454,6 @@
 
                     /*
                      * =====================================================
-                     * SECOND PASS
                      * MEDICAL HISTORY SPACING
                      * =====================================================
                      */
@@ -612,34 +461,27 @@
                     paragraphs =
                         doc.GetAllParagraphs();
 
-
                     var inHistory = false;
                     var lastHistoryParagraph = null;
-
 
                     for (
                         var j = 0;
                         j < paragraphs.length;
                         j++
                     ) {
-
                         var hp = paragraphs[j];
                         var ht = cleanText(hp);
 
-
                         if (!ht) {
-
                             continue;
                         }
 
-
-                        var hh = normHeading(ht);
-
+                        var hh =
+                            normHeading(ht);
 
                         if (
                             HISTORY_HEADINGS[hh]
                         ) {
-
                             inHistory = true;
 
                             lastHistoryParagraph = null;
@@ -647,19 +489,16 @@
                             continue;
                         }
 
-
                         if (
                             inHistory &&
                             isHeading(ht)
                         ) {
-
-                            /*
-                             * One line after Medical History.
-                             */
-
                             if (
                                 lastHistoryParagraph
                             ) {
+                                /*
+                                 * One line after Medical History.
+                                 */
 
                                 lastHistoryParagraph
                                     .SetSpacingAfter(
@@ -673,15 +512,10 @@
                                     );
                             }
 
-
                             inHistory = false;
                         }
 
-
-                        if (
-                            inHistory
-                        ) {
-
+                        if (inHistory) {
                             hp.SetSpacingBefore(
                                 0,
                                 false
@@ -700,12 +534,10 @@
                         }
                     }
 
-
                     if (
                         inHistory &&
                         lastHistoryParagraph
                     ) {
-
                         lastHistoryParagraph
                             .SetSpacingAfter(
                                 240,
@@ -721,7 +553,6 @@
 
                     /*
                      * =====================================================
-                     * THIRD PASS
                      * INVESTIGATION SPACING
                      * =====================================================
                      */
@@ -729,30 +560,24 @@
                     var inInvestigations = false;
                     var lastInvestigationParagraph = null;
 
-
                     for (
                         var k = 0;
                         k < paragraphs.length;
                         k++
                     ) {
-
                         var ip = paragraphs[k];
                         var it = cleanText(ip);
 
-
                         if (!it) {
-
                             continue;
                         }
 
-
-                        var ih = normHeading(it);
-
+                        var ih =
+                            normHeading(it);
 
                         if (
                             ih === "INVESTIGATIONS:"
                         ) {
-
                             inInvestigations = true;
 
                             lastInvestigationParagraph = null;
@@ -760,23 +585,15 @@
                             continue;
                         }
 
-
                         if (
                             inInvestigations
                         ) {
-
                             if (
                                 isHeading(it)
                             ) {
-
                                 if (
                                     lastInvestigationParagraph
                                 ) {
-
-                                    /*
-                                     * Small gap only.
-                                     */
-
                                     lastInvestigationParagraph
                                         .SetSpacingAfter(
                                             120,
@@ -789,32 +606,23 @@
                                         );
                                 }
 
-
                                 inInvestigations = false;
 
                                 continue;
                             }
 
-
                             if (
                                 looksLikeInvestigation(it)
                             ) {
-
                                 lastInvestigationParagraph =
                                     ip;
 
                                 continue;
                             }
 
-
                             if (
                                 lastInvestigationParagraph
                             ) {
-
-                                /*
-                                 * Small gap before narrative body.
-                                 */
-
                                 lastInvestigationParagraph
                                     .SetSpacingAfter(
                                         120,
@@ -827,17 +635,14 @@
                                     );
                             }
 
-
                             inInvestigations = false;
                         }
                     }
-
 
                     if (
                         inInvestigations &&
                         lastInvestigationParagraph
                     ) {
-
                         lastInvestigationParagraph
                             .SetSpacingAfter(
                                 120,
@@ -850,12 +655,9 @@
                             );
                     }
 
-
                     return "OK";
 
-
                 } catch (e) {
-
                     return (
                         "ERROR: " +
                         (
@@ -865,18 +667,15 @@
                         )
                     );
                 }
-
             },
 
             true,
             true,
 
             function (result) {
-
                 if (btn) {
                     btn.disabled = false;
                 }
-
 
                 if (
                     result &&
@@ -884,14 +683,11 @@
                         "ERROR:"
                     ) === 0
                 ) {
-
                     setStatus(
                         result,
                         true
                     );
-
                 } else {
-
                     setStatus(
                         "Formatting complete. Review the letter, then save/send.",
                         false
@@ -902,28 +698,19 @@
     };
 
 
-    /*
-     * ================================================================
-     * PLUGIN INITIALISATION
-     * ================================================================
-     */
-
     window.Asc.plugin.init = function () {
-
         setStatus(
-            "Coastal Formatter v12 loaded — click Format current letter.",
+            "Coastal Formatter v13 loaded — click Format current letter.",
             false
         );
     };
 
 
     window.Asc.plugin.button = function (id) {
-
         this.executeCommand(
             "close",
             ""
         );
     };
-
 
 })(window, undefined);
